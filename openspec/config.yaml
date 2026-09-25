@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  openspec-webstorm is an IntelliJ Platform plugin (Kotlin, Gradle, IntelliJ Platform Gradle Plugin
+  2.x) that gives JetBrains IDEs an "OpenSpec" tool window: it lists a project's OpenSpec changes and
+  follow-ups and starts Claude Code sessions for the OpenSpec commands in IDE terminal tabs. It must
+  load in every IntelliJ-based IDE (WebStorm, PhpStorm, ...): depend only on the platform module and
+  the bundled Terminal plugin. `./gradlew check verifyPlugin` is the gate before any commit.
+
+  How OpenSpec is used here:
+  - A change's artifacts are the plan; don't also run superpowers brainstorming or writing-plans.
+    TDD and verification-before-completion still govern apply.
+  - Every write needs Derwa's explicit go: before propose, before apply, before archive.
+  - openspec/changes/ is transient scratch: code, config and docs never cite it. openspec/specs/ is
+    durable intended behaviour.
+  - Nothing here commits; Derwa does every git write.
+  - Read the platform's actual source or docs (plugins.jetbrains.com/docs/intellij) before relying
+    on an API, especially the Terminal plugin's, which changed across recent releases.
+
+rules:
+  specs:
+    - A spec states how the plugin SHOULD behave, never how it is built. Code is the truth for how it
+      works.
+    - Name no class, file, API, extension point or Gradle task. Describe what a user sees and does in
+      the IDE.
+    - One capability per folder, named for what a user can do, not for a source package.
+    - If code and spec disagree, report it as a finding. Never edit a spec to match the code.
+  design:
+    - Say why, not history. Nothing in design.md may be cited from code later.
+  tasks:
+    - Tests first where behaviour changes (TDD); the last task is `./gradlew check verifyPlugin`
+      green.
+    - Manual checks in the IDE are tasks too, written as a concrete checklist.
