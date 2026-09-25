@@ -48,7 +48,7 @@ fun panelModel(setup: ProjectSetup, changes: ChangesResult, followUps: List<Foll
                         ChangeRow(
                             name = change.name,
                             progress = "${change.completedTasks}/${change.totalTasks}",
-                            actions = listOf(Action.APPLY, Action.VERIFY, Action.ARCHIVE).map { button(it, change.name) },
+                            actions = changeActions(change).map { button(it, change.name) },
                         )
                     },
                 )
@@ -74,6 +74,13 @@ fun panelModel(setup: ProjectSetup, changes: ChangesResult, followUps: List<Foll
     }
 
     return PanelModel(projectActions, changesSection, followUpRows)
+}
+
+/** A change's actions, its likely next step first. Archive is never first: it's the one that's hard to undo. */
+private fun changeActions(change: Change): List<Action> = when {
+    change.totalTasks == 0 -> listOf(Action.EXPLORE, Action.APPLY, Action.VERIFY, Action.ARCHIVE)
+    change.completedTasks >= change.totalTasks -> listOf(Action.VERIFY, Action.ARCHIVE, Action.APPLY, Action.EXPLORE)
+    else -> listOf(Action.APPLY, Action.VERIFY, Action.ARCHIVE, Action.EXPLORE)
 }
 
 /** A terminal tab's name: the action, and its target's first line shortened. */

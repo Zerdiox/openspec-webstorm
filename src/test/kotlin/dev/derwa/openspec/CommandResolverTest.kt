@@ -67,6 +67,12 @@ class CommandResolverTest {
     }
 
     @Test
+    fun `exploring a change sends its name`() {
+        assertEquals("/openspec-explore plan-panel-fixes", skills.command(Action.EXPLORE, "plan-panel-fixes"))
+        assertEquals("/opsx:explore plan-panel-fixes", opsx.command(Action.EXPLORE, "plan-panel-fixes"))
+    }
+
+    @Test
     fun `opsx commands for every workflow action`() {
         assertEquals("/opsx:explore board paging", opsx.command(Action.EXPLORE, "board paging"))
         assertEquals("/opsx:propose board paging", opsx.command(Action.PROPOSE, "board paging"))

@@ -32,7 +32,7 @@ class PanelModelTest {
     }
 
     @Test
-    fun `changes are listed with done out of total and apply, verify, archive`() {
+    fun `changes are listed with done out of total, and apply first while tasks remain`() {
         val rows = (panelModel(skillsWithBacklog, twoChanges, null).changes as ChangesSection.Rows).rows
 
         assertEquals(listOf("astro-7-upgrade", "plan-panel-fixes"), rows.map { it.name })
@@ -42,10 +42,39 @@ class PanelModelTest {
                 ActionButton(Action.APPLY, "plan-panel-fixes", enabled = true),
                 ActionButton(Action.VERIFY, "plan-panel-fixes", enabled = true),
                 ActionButton(Action.ARCHIVE, "plan-panel-fixes", enabled = true),
+                ActionButton(Action.EXPLORE, "plan-panel-fixes", enabled = true),
             ),
             rows[1].actions,
         )
     }
+
+    @Test
+    fun `a change without tasks offers explore first`() {
+        assertEquals(
+            listOf(Action.EXPLORE, Action.APPLY, Action.VERIFY, Action.ARCHIVE),
+            actionsOf(Change("new-idea", completedTasks = 0, totalTasks = 0, status = "no-tasks")),
+        )
+    }
+
+    @Test
+    fun `a change with all tasks done offers verify first`() {
+        assertEquals(
+            listOf(Action.VERIFY, Action.ARCHIVE, Action.APPLY, Action.EXPLORE),
+            actionsOf(Change("done", completedTasks = 10, totalTasks = 10, status = "complete")),
+        )
+    }
+
+    @Test
+    fun `a change with more done than total counts as all done`() {
+        assertEquals(
+            listOf(Action.VERIFY, Action.ARCHIVE, Action.APPLY, Action.EXPLORE),
+            actionsOf(Change("odd", completedTasks = 11, totalTasks = 10, status = "complete")),
+        )
+    }
+
+    private fun actionsOf(change: Change): List<Action> =
+        (panelModel(skillsWithBacklog, ChangesResult.Loaded(listOf(change)), null).changes as ChangesSection.Rows)
+            .rows.single().actions.map { it.action }
 
     @Test
     fun `unreadable changes say so and why`() {
@@ -133,13 +162,14 @@ class PanelModelTest {
 
         assertEquals(listOf(false, false, true), model.projectActions.map { it.enabled })
         val row = (model.changes as ChangesSection.Rows).rows.first()
-        assertEquals(listOf(false, false, false), row.actions.map { it.enabled })
+        assertEquals(listOf(false, false, false, false), row.actions.map { it.enabled })
     }
 
     @Test
     fun `tab names are the action and its target`() {
         assertEquals("apply: plan-panel-fixes", tabName(Action.APPLY, "plan-panel-fixes"))
         assertEquals("promote: FU-0033", tabName(Action.PROMOTE, "FU-0033"))
+        assertEquals("explore: plan-panel-fixes", tabName(Action.EXPLORE, "plan-panel-fixes"))
         assertEquals("backlog review", tabName(Action.BACKLOG_REVIEW, null))
     }
 
