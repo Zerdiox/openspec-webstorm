@@ -7,12 +7,11 @@
     Claude Code sessions for the OpenSpec workflow steps in IDE terminal tabs.
     ]]></description>
 
-    <depends>com.intellij.modules.platform</depends>
-    <depends>org.jetbrains.plugins.terminal</depends>
-
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="OpenSpec" anchor="left" icon="AllIcons.Actions.ListFiles"
-                    factoryClass="dev.derwa.openspec.OpenSpecToolWindowFactory"/>
-        <notificationGroup id="OpenSpec" displayType="BALLOON"/>
-    </extensions>
+    <!-- The backend module loads where the project lives, the frontend module where the UI is; a
+         standalone IDE loads both. -->
+    <content>
+        <module name="dev.derwa.openspec.shared" loading="required"/>
+        <module name="dev.derwa.openspec.backend"/>
+        <module name="dev.derwa.openspec.frontend"/>
+    </content>
 </idea-plugin>

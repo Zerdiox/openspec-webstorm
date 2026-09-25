@@ -34,23 +34,19 @@ Build the plugin (below), or take a built `openspec-webstorm-<version>.zip`, the
 **Standalone IDE:** Settings → Plugins → ⚙ → Install Plugin from Disk… → choose the zip.
 
 **Remote development (JetBrains Gateway / Toolbox, IDE backend on another machine or in WSL):**
-install it on the **backend only** — in the client, Settings → **Plugins (Host)** → ⚙ → Install
-Plugin from Disk…, then restart the backend when asked. Don't also install it in the client's own
-"Plugins" page: a client copy registers a tool window with the same name first and hides the
-backend's.
+install the same zip on **both sides**, then restart both:
+
+- on the backend: in the client, Settings → **Plugins (Host)** → ⚙ → Install Plugin from Disk…;
+- in the client: Settings → **Plugins** → ⚙ → Install Plugin from Disk….
+
+The OpenSpec panel runs on the backend, and the client copy opens the terminal tabs. Without the
+client copy the panel still works, but its buttons open no tab.
 
 **Finding the tool window:** in the new UI, a tool window added to an existing layout starts under
 View → Tool Windows → OpenSpec (or the ⋯ button on the tool-window bar), not on the bar itself. Open
 it once and drag its icon onto the left bar; the IDE remembers where you put it.
 
 To remove it, uninstall the plugin from the same Plugins page.
-
-## Known limitation: remote development
-
-In a standalone IDE the buttons open a normal (reworked) terminal tab and Claude Code renders
-cleanly. Under remote development the tab is created by the backend and reaches the client through
-a relay that starts it at a fixed size, so Claude Code's screen shows leftover lines until you
-resize the tab once — drag the terminal's edge a little and it redraws correctly from then on.
 
 ## Building
 
@@ -60,6 +56,7 @@ Needs JDK 21 (`sudo apt install openjdk-21-jdk`); Gradle comes with the wrapper.
     ./gradlew check verifyPlugin       # tests and the Plugin Verifier — the gate before a commit
     ./gradlew runIde                   # a sandbox WebStorm with the plugin
     ./gradlew runPhpStorm              # a sandbox PhpStorm with the plugin
+    ./gradlew runSplitMode             # a sandbox WebStorm backend and client, as under remote development
 
 The first run of the verifier and of each sandbox downloads the IDEs, about 1 GB each. The sandboxes
 need a display (WSLg under WSL) and ask for a JetBrains login or trial on first start.

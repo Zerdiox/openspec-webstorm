@@ -15,7 +15,7 @@ the setup the plugin is used in every day, so each click opens a tab that doesn'
   the first frame, with no resize needed.
 - The plugin is split into a part that runs where the project lives (the panel, finding the tools,
   starting the session) and a small part that runs in the client and opens the tab. In a standalone
-  IDE both parts run in one IDE.
+  IDE both parts run in one IDE and the tab opens directly, as it does today.
 - **BREAKING** (installation): under remote development the plugin must also be installed in the
   client, next to the copy on the backend. Without the client copy a click opens no tab at all; it
   doesn't fall back to the old broken one. The client copy no longer adds a second OpenSpec panel
@@ -39,10 +39,11 @@ None.
 ## Impact
 
 - The plugin's packaging: one plugin with separate backend, client and shared parts, each declaring
-  its own dependencies; the plugin descriptor, the Gradle build (new subprojects and Kotlin
-  serialization) and the Plugin Verifier setup change with it.
-- Opening a Claude Code tab: the backend asks the client that clicked to open the tab; the backend
-  no longer opens terminal tabs itself.
+  its own dependencies; the plugin descriptor, the Gradle build (new subprojects, Kotlin
+  serialization and JetBrains' `rpc` compiler plugin) and the Plugin Verifier setup change with it.
+- Opening a Claude Code tab: the client subscribes to the backend over the platform's RPC, and the
+  backend asks the client that clicked to open the tab; the backend no longer opens terminal tabs
+  itself.
 - Still depends only on the platform and the bundled Terminal plugin; supported IDE versions are
   unchanged (2026.1 and later).
 - Must land after `panel-layout-and-usability`, which changes the same panel and plugin descriptor.
@@ -50,7 +51,8 @@ None.
 ## Out of Scope / Deferred
 
 - Detecting a missing client copy and falling back to a Classic tab: the Classic tab is the broken
-  experience this change removes, and detection would need the heavier two-way RPC setup.
+  experience this change removes, and detection would need the backend to wait for the client to
+  confirm each tab.
 - New follow-up candidates for Derwa to approve:
   - Publish the plugin on JetBrains Marketplace, so the IDE offers to install the client copy by
     itself under remote development instead of it being installed by hand.

@@ -1,0 +1,14 @@
+<idea-plugin>
+    <dependencies>
+        <module name="intellij.platform.backend"/>
+        <module name="intellij.platform.kernel.backend"/>
+        <module name="dev.derwa.openspec.shared"/>
+    </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="OpenSpec" anchor="left" icon="AllIcons.Actions.ListFiles"
+                    factoryClass="dev.derwa.openspec.OpenSpecToolWindowFactory"/>
+        <notificationGroup id="OpenSpec" displayType="BALLOON"/>
+        <platform.rpc.backend.remoteApiProvider implementation="dev.derwa.openspec.OpenTabApiProvider"/>
+    </extensions>
+</idea-plugin>
