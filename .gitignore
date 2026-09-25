@@ -1,0 +1,9 @@
+.idea
+build/
+.gradle/
+.intellijPlatform/
+.kotlin/
+
+# Resolved follow-ups — kept locally so old IDs stay readable, never committed
+/openspec/backlog/followup/resolved/*
+!/openspec/backlog/followup/resolved/.gitkeep

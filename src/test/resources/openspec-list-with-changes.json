@@ -1,0 +1,22 @@
+{
+  "changes": [
+    {
+      "name": "plan-panel-fixes",
+      "completedTasks": 0,
+      "totalTasks": 15,
+      "lastModified": "2026-09-24T21:48:33.234Z",
+      "status": "in-progress"
+    },
+    {
+      "name": "astro-7-upgrade",
+      "completedTasks": 0,
+      "totalTasks": 27,
+      "lastModified": "2026-09-24T21:44:34.338Z",
+      "status": "in-progress"
+    }
+  ],
+  "root": {
+    "path": "/home/derwa/projects/atg-milsim",
+    "source": "nearest"
+  }
+}

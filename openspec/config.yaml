@@ -17,6 +17,13 @@ context: |
   - Read the platform's actual source or docs (plugins.jetbrains.com/docs/intellij) before relying
     on an API, especially the Terminal plugin's, which changed across recent releases.
 
+  Follow-ups: out-of-scope issues (bugs, tech debt, test gaps, ideas) are tracked as individual
+  files in openspec/backlog/followup/, which is working notes like openspec/changes/: code, config
+  and docs never cite it. Read openspec/backlog/followup/README.md before creating, updating or
+  resolving one, and follow its rules. Before proposing a change, check for open follow-ups with a
+  matching capability. A follow-up is a write like any other: list candidates in the summary and
+  record them only on Derwa's go (usually via /backlog add).
+
 rules:
   specs:
     - A spec states how the plugin SHOULD behave, never how it is built. Code is the truth for how it
@@ -25,9 +32,17 @@ rules:
       the IDE.
     - One capability per folder, named for what a user can do, not for a source package.
     - If code and spec disagree, report it as a finding. Never edit a spec to match the code.
+  proposal:
+    - Include an "Out of Scope / Deferred" section. Reference existing follow-ups by ID; list new
+      candidates for Derwa to approve as follow-ups rather than creating them.
+    - List any follow-up IDs this change resolves under "Resolves", and resolve them as described
+      in openspec/backlog/followup/README.md.
   design:
     - Say why, not history. Nothing in design.md may be cited from code later.
   tasks:
-    - Tests first where behaviour changes (TDD); the last task is `./gradlew check verifyPlugin`
-      green.
+    - Tests first where behaviour changes (TDD); the last implementation task is
+      `./gradlew check verifyPlugin` green.
     - Manual checks in the IDE are tasks too, written as a concrete checklist.
+    - After them, a final "Follow-up harvest" group with one task — "List each out-of-scope issue
+      discovered during implementation as a follow-up candidate in the completion summary; record
+      them (see openspec/backlog/followup/README.md) on Derwa's go."

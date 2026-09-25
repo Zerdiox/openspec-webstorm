@@ -1,0 +1,18 @@
+<idea-plugin>
+    <id>dev.derwa.openspec</id>
+    <name>OpenSpec</name>
+    <vendor>Derwa</vendor>
+    <description><![CDATA[
+    An OpenSpec tool window: lists a project's OpenSpec changes and open follow-ups, and starts
+    Claude Code sessions for the OpenSpec workflow steps in IDE terminal tabs.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="OpenSpec" anchor="left" icon="AllIcons.Actions.ListFiles"
+                    factoryClass="dev.derwa.openspec.OpenSpecToolWindowFactory"/>
+        <notificationGroup id="OpenSpec" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>
