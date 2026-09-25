@@ -29,15 +29,15 @@
 
 - [x] 5.1 Standalone WebStorm sandbox (`runIde`): the tab opens through the local opener, not RPC; Apply on a change opens a tab named for it in the project root, Claude Code fills it at full width and height with no residue, and making the terminal taller makes Claude Code taller
 - [x] 5.2 Split-mode sandbox: exactly one OpenSpec panel; Apply, Explore (with a quoted description) and Promote each open a reworked tab in the client, in the project root, with Claude Code at full size and following height and width changes
-- [ ] 5.3 Real remote-dev backend (WSL), zip installed on the backend and in the client: one OpenSpec panel; a button opens a tab where Claude Code fills the full height and width at once, and grows when the window is enlarged
-- [ ] 5.4 Real remote-dev backend with the client copy uninstalled: the panel still shows and clicking opens no tab, and nothing errors on the backend
+- [x] 5.3 Real remote-dev backend (WSL), zip installed on the backend and in the client: one OpenSpec panel; a button opens a tab where Claude Code fills the full height and width at once, and grows when the window is enlarged
+- [x] 5.4 Real remote-dev backend with the client copy uninstalled: the panel still shows and clicking opens no tab, and nothing errors on the backend
 - [x] 5.5 PhpStorm sandbox: the plugin loads and a button opens a correctly sized tab
 - [x] 5.6 With `claude` removed from PATH, a button shows the "Claude Code wasn't found" notification and opens no tab
 
 ## 6. Finish
 
-- [ ] 6.1 Resolve FU-0001 per openspec/backlog/followup/README.md: add the height finding (height never corrects after a resize; black below Claude Code's status line) to its Notes, add `resolved` and `resolved_by: reworked-tabs-under-remote-development`, and move it to `resolved/` with plain `mv`; verify it's gone from the open follow-ups
+- [x] 6.1 Resolve FU-0001 per openspec/backlog/followup/README.md: add the height finding (height never corrects after a resize; black below Claude Code's status line) to its Notes, add `resolved` and `resolved_by: reworked-tabs-under-remote-development`, and move it to `resolved/` with plain `mv`; verify it's gone from the open follow-ups
 
 ## 7. Follow-up harvest
 
-- [ ] 7.1 List each out-of-scope issue discovered during implementation as a follow-up candidate in the completion summary; record them (see openspec/backlog/followup/README.md) on Derwa's go.
+- [x] 7.1 List each out-of-scope issue discovered during implementation as a follow-up candidate in the completion summary; record them (see openspec/backlog/followup/README.md) on Derwa's go.

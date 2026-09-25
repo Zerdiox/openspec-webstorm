@@ -148,6 +148,14 @@ change; the new ones are all in `fleet.rpc` (`RemoteApiDescriptor`, `RpcSignatur
 `ParameterDescriptor`), called from the stubs the `rpc` compiler plugin generates for `OpenTabApi`,
 not from our own code.
 
+**What the real remote-development checks showed (tasks 5.3 and 5.4).** On a WSL backend running
+WebStorm 2026.1.5, the backend logs `Module dev.derwa.openspec.frontend is not enabled`, so it has no
+local opener, as designed. With the zip installed on both sides, the client's Plugins page lists one
+OpenSpec entry, and uninstalling it removes both copies; the UI has no way to remove only the client
+copy. Task 5.4 was therefore checked by installing through Plugins (Host) only: the panel shows,
+clicking opens no tab, and the backend logs no error. The platform doesn't copy the plugin to the
+client on its own, so the README's install-on-both-sides instructions stand.
+
 ## Risks / Trade-offs
 
 - [RPC from the backend might not reach the client's subscriber] → The first spike checks this in
