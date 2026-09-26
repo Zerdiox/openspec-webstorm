@@ -1,5 +1,5 @@
 ---
-id: FU-0006
+id: F6
 title: Claude Code replaces the tab name the plugin gives it
 found: 2026-09-26
 source: reworked-tabs-under-remote-development

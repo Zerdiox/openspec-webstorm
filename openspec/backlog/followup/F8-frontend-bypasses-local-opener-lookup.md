@@ -1,5 +1,5 @@
 ---
-id: FU-0008
+id: F8
 title: The frontend opens requested tabs through ReworkedTerminalTab directly
 found: 2026-09-26
 source: reworked-tabs-under-remote-development

@@ -1,5 +1,5 @@
 ---
-id: FU-0007
+id: F7
 title: With the plugin only on the backend, a button click silently does nothing
 found: 2026-09-26
 source: reworked-tabs-under-remote-development

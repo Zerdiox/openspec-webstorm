@@ -86,10 +86,10 @@ class FollowUpsSourceTest {
 
     @Test
     fun `missing fields are left empty, and the id falls back to the file name`() {
-        followUp("FU-0001-board-pager.md", "---\ntitle: Boards show everything\ncapability: \n---\n")
+        followUp("F12-board-pager.md", "---\ntitle: Boards show everything\ncapability: \n---\n")
 
         assertEquals(
-            listOf(FollowUp(file = "FU-0001-board-pager.md", id = "FU-0001", title = "Boards show everything")),
+            listOf(FollowUp(file = "F12-board-pager.md", id = "F12", title = "Boards show everything")),
             FollowUpsSource.load(root),
         )
     }
@@ -124,10 +124,20 @@ class FollowUpsSourceTest {
     }
 
     @Test
-    fun `follow-ups are listed in file name order`() {
-        followUp("FU-0010-b.md", "---\nid: FU-0010\n---\n")
-        followUp("FU-0002-a.md", "---\nid: FU-0002\n---\n")
+    fun `follow-ups are listed in file name order, numbers compared as numbers`() {
+        followUp("F10-b.md", "---\nid: F10\n---\n")
+        followUp("F2-a.md", "---\nid: F2\n---\n")
+        followUp("F1-c.md", "---\nid: F1\n---\n")
 
-        assertEquals(listOf("FU-0002", "FU-0010"), FollowUpsSource.load(root)!!.map { it.id })
+        assertEquals(listOf("F1", "F2", "F10"), FollowUpsSource.load(root)!!.map { it.id })
+    }
+
+    @Test
+    fun `follow-ups are listed whatever their id scheme`() {
+        followUp("F5-new.md", "---\nid: F5\n---\n")
+        followUp("FU-0002-old.md", "---\nid: FU-0002\n---\n")
+        followUp("BUG-7-other.md", "---\nid: BUG-7\n---\n")
+
+        assertEquals(listOf("BUG-7", "F5", "FU-0002"), FollowUpsSource.load(root)!!.map { it.id })
     }
 }

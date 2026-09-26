@@ -24,17 +24,22 @@ data class FollowUp(
 
 /** Reads a project's open follow-ups from the frontmatter of its backlog files. */
 object FollowUpsSource {
-    private val FILE_ID = Regex("^FU-\\d+")
+    // Projects number follow-ups their own way (FU-0042, F42, ...): a leading word and number.
+    private val FILE_ID = Regex("^[A-Za-z]+-?\\d+")
+    private val NUMBER = Regex("\\d+")
 
     /** The open follow-ups, or null when the project has no follow-ups backlog. */
     fun load(projectRoot: Path): List<FollowUp>? {
         val folder = projectRoot.resolve(FOLLOW_UPS_FOLDER)
         if (!folder.isDirectory()) return null
-        return folder.listDirectoryEntries("FU-*.md")
-            .filter { it.isRegularFile() }
-            .sortedBy { it.name }
+        return folder.listDirectoryEntries("*.md")
+            .filter { it.isRegularFile() && !it.name.equals("README.md", ignoreCase = true) }
+            .sortedWith(compareBy<Path>(::naturalKey).thenBy { it.name })
             .map(::read)
     }
+
+    /** The file name with its numbers zero-padded, so F2 sorts before F10. */
+    private fun naturalKey(file: Path): String = NUMBER.replace(file.name) { it.value.trimStart('0').padStart(20, '0') }
 
     private fun read(file: Path): FollowUp {
         val fileId = FILE_ID.find(file.name)?.value

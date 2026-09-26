@@ -1,6 +1,6 @@
 # Follow-ups
 
-Next ID: FU-0013
+Next ID: F13
 
 Out-of-scope issues noticed during planning, implementation or conversation,
 one issue per file. Open follow-ups live in this folder; resolved or dropped
@@ -8,7 +8,7 @@ ones live in `resolved/`, which is gitignored — resolved follow-ups are kept
 locally, not in the repo.
 
 Like the rest of this folder they are working notes: code, config, the README
-and skills never cite an `FU-*` file. If a reason needs to live near the code,
+and skills never cite a follow-up file. If a reason needs to live near the code,
 write it in the comment.
 
 ## Creating a follow-up
@@ -17,9 +17,9 @@ write it in the comment.
    exists, update it instead of creating a new one.
 2. Take the ID from "Next ID" above, then increment "Next ID" by one in the
    same edit. Never reuse a number.
-3. Create `FU-NNNN-short-kebab-title.md` in this folder using the template
-   below. Use four digits (FU-0007, FU-0042).
-4. Refer to follow-ups by ID (e.g. FU-0042) in proposals, commits and chat.
+3. Create `F<N>-short-kebab-title.md` in this folder using the template
+   below. The number is not zero-padded (F7, F42).
+4. Refer to follow-ups by ID (e.g. F42) in proposals, commits and chat.
 
 ## Resolving a follow-up
 
@@ -39,7 +39,7 @@ follow-up files; old IDs must stay resolvable.
 
 Point explore at the file explicitly:
 
-    /openspec-explore FU-0042 — read openspec/backlog/followup/FU-0042-*.md and start from that
+    /openspec-explore F42 — read openspec/backlog/followup/F42-*.md and start from that
 
 Related follow-ups can be explored together (e.g. several with the same
 `capability`). When scope is agreed, `/openspec-propose` creates the change and
@@ -54,7 +54,7 @@ the newer duplicate follow-up (file name and `id` field).
 ## Template
 
     ---
-    id: FU-NNNN
+    id: F<N>
     title:
     found: YYYY-MM-DD
     source:          # change name, or "conversation"

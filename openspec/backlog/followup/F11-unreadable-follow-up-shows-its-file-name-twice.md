@@ -1,5 +1,5 @@
 ---
-id: FU-0011
+id: F11
 title: An unreadable follow-up's row shows its file name twice
 found: 2026-09-26
 source: panel-as-tree
@@ -10,8 +10,9 @@ size: S
 ---
 
 ## What
-For a follow-up the panel can't read, both the row's ID and its title fall back to the file name,
-and the renderer shows "ID  title", so the row reads "FU-x.md  FU-x.md  unreadable".
+For a follow-up the panel can't read, the row's title is its file name and its ID is the ID at the
+start of that name, so the row repeats itself: "F40  F40-broken.md  unreadable". A file name with no
+leading ID shows in full twice: "notes.md  notes.md  unreadable".
 
 ## Why it matters
 Cosmetic, but it's the row meant to draw attention to a broken file, and the repetition makes it

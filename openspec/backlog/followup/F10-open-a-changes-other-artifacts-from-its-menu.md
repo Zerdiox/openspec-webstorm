@@ -1,5 +1,5 @@
 ---
-id: FU-0010
+id: F10
 title: Open a change's design, tasks or specs from its context menu
 found: 2026-09-26
 source: panel-as-tree

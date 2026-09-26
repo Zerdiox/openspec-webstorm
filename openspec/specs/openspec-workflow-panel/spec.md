@@ -66,8 +66,8 @@ conversation then continues in that tab like any Claude Code session.
 - **THEN** without being asked for a description, a new terminal tab named for exploring plan-panel-fixes opens, running Claude Code with the explore command and that change's name
 
 #### Scenario: Promoting a follow-up
-- **WHEN** the user chooses Promote on follow-up FU-0033
-- **THEN** a new terminal tab opens running Claude Code with the command to promote FU-0033
+- **WHEN** the user chooses Promote on follow-up F33
+- **THEN** a new terminal tab opens running Claude Code with the command to promote F33
 
 ### Requirement: The available actions
 The panel SHALL offer Explore, Propose and Backlog review for the project; Explore, Apply, Verify
@@ -271,8 +271,8 @@ promote them in one Claude Code session, whose promote command carries all their
 they are listed.
 
 #### Scenario: Promoting two follow-ups
-- **WHEN** the user selects follow-ups FU-0003 and FU-0004 and chooses Promote
-- **THEN** one new terminal tab opens running Claude Code with the command to promote FU-0003 and FU-0004
+- **WHEN** the user selects follow-ups F3 and F4 and chooses Promote
+- **THEN** one new terminal tab opens running Claude Code with the command to promote F3 and F4
 
 ### Requirement: Follow-ups can be filtered and grouped
 From the toolbar, the user SHALL be able to filter the follow-ups by type and by capability, and to

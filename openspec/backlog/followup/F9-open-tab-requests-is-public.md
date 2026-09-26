@@ -1,5 +1,5 @@
 ---
-id: FU-0009
+id: F9
 title: OpenTabRequests is public while the other new backend classes are internal
 found: 2026-09-26
 source: reworked-tabs-under-remote-development

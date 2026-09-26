@@ -1,5 +1,5 @@
 ---
-id: FU-0005
+id: F5
 title: A capability/domain spec browser in the OpenSpec panel
 found: 2026-09-25
 source: conversation
