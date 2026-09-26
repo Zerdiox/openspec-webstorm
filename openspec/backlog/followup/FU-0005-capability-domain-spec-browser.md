@@ -4,7 +4,7 @@ title: A capability/domain spec browser in the OpenSpec panel
 found: 2026-09-25
 source: conversation
 capability: openspec-workflow-panel
-location: src/main/kotlin/dev/derwa/openspec/OpenSpecToolWindowFactory.kt:20
+location: backend/src/main/kotlin/dev/derwa/openspec/OpenSpecToolWindowFactory.kt:20
 type: idea
 size: M
 ---
@@ -24,6 +24,9 @@ the panel.
 The tool window has one unnamed tab today; a second means naming both (e.g. "Workflow" and "Specs").
 `openspec list --specs --json` gives capability ids and requirement counts (unverified whether a
 nested spec's id carries its domain path; this repo only has flat specs), and `openspec show <id>
---type spec --json` gives purpose and requirements, the same CLI path the changes list uses. Related
-to FU-0002: clicking a capability should open its spec file too. May deserve its own capability
-("browsing specs") rather than growing openspec-workflow-panel; decide when promoting.
+--type spec --json` gives purpose and requirements, the same CLI path the changes list uses. The
+panel is now a tree, and its tree set-up (nodes kept by key, selection and collapsed groups
+restored, double-click, Enter and F4 opening files) was written with no OpenSpec knowledge so a spec
+browser can reuse it; a capability or requirement row should open its spec file the same way. May
+deserve its own capability ("browsing specs") rather than growing openspec-workflow-panel; decide
+when promoting.
