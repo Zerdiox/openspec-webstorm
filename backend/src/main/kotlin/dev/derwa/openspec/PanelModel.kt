@@ -1,16 +1,37 @@
 package dev.derwa.openspec
 
+import java.nio.file.Files
+import java.nio.file.Path
+
 data class ActionButton(val action: Action, val target: String?, val enabled: Boolean)
 
-data class ChangeRow(val name: String, val progress: String, val actions: List<ActionButton>)
+/** A change or follow-up the panel lists; its [key] stays the same across refreshes. */
+sealed interface PanelItem {
+    val key: String
+}
+
+data class ChangeRow(
+    val name: String,
+    val progress: String,
+    val actions: List<ActionButton>,
+    val folder: Path,
+) : PanelItem {
+    override val key get() = "change:$name"
+}
 
 data class FollowUpRow(
     val id: String,
     val title: String,
     val detail: String,
     val promote: ActionButton?,
+    val file: Path,
+    val type: String? = null,
+    val capability: String? = null,
     val unreadable: Boolean = false,
-)
+) : PanelItem {
+    // The file name, since an unreadable follow-up may have no ID.
+    override val key get() = "followup:${file.fileName}"
+}
 
 sealed interface ChangesSection {
     data class Rows(val rows: List<ChangeRow>) : ChangesSection
@@ -26,7 +47,7 @@ data class PanelModel(
 
 private const val TAB_TARGET_LENGTH = 32
 
-fun panelModel(setup: ProjectSetup, changes: ChangesResult, followUps: List<FollowUp>?): PanelModel {
+fun panelModel(setup: ProjectSetup, projectRoot: Path, changes: ChangesResult, followUps: List<FollowUp>?): PanelModel {
     val resolver = CommandResolver(setup)
     fun button(action: Action, target: String?) =
         ActionButton(action, target, enabled = resolver.command(action, target) != null)
@@ -49,6 +70,7 @@ fun panelModel(setup: ProjectSetup, changes: ChangesResult, followUps: List<Foll
                             name = change.name,
                             progress = "${change.completedTasks}/${change.totalTasks}",
                             actions = changeActions(change).map { button(it, change.name) },
+                            folder = projectRoot.resolve("openspec/changes").resolve(change.name),
                         )
                     },
                 )
@@ -68,6 +90,9 @@ fun panelModel(setup: ProjectSetup, changes: ChangesResult, followUps: List<Foll
                     listOfNotNull(followUp.type, followUp.capability).joinToString(" · ")
                 },
                 promote = followUp.id?.let { button(Action.PROMOTE, it) },
+                file = projectRoot.resolve(FOLLOW_UPS_FOLDER).resolve(followUp.file),
+                type = followUp.type,
+                capability = followUp.capability,
                 unreadable = followUp.unreadable,
             )
         }
@@ -90,3 +115,7 @@ fun tabName(action: Action, target: String?): String {
     val shortened = if (line.length > TAB_TARGET_LENGTH) line.take(TAB_TARGET_LENGTH).trimEnd() + "…" else line
     return "${action.label}: $shortened"
 }
+
+/** What opening a change shows: its proposal, or its folder until it has one. */
+fun changeOpenTarget(folder: Path): Path =
+    folder.resolve("proposal.md").takeIf { Files.isRegularFile(it) } ?: folder

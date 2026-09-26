@@ -60,22 +60,29 @@ collapse or expand it, as in the IDE's own trees.
 ### Requirement: Actions act on the selection
 The panel SHALL offer its actions in a toolbar at the top of the panel and in each row's context
 menu. The toolbar SHALL always offer Explore, Propose and, where the project has a backlog, Backlog
-review. The toolbar and the context menu SHALL offer the actions for the current selection:
+review. The toolbar SHALL offer the actions for the current selection:
 - With one change selected: its actions.
 - With one or more follow-ups selected, and nothing else: Promote.
 - With nothing selected, a group selected, several changes selected, or changes and follow-ups
   selected together: the selection's actions SHALL be shown disabled, with a tooltip saying why.
 
-The context menu SHALL list Jump to Source first, then the selection's actions. An action that isn't
-set up in the project SHALL be disabled with the same explanation as today.
+The context menu SHALL list Jump to Source first, then only the actions that apply to the kinds of
+rows selected: the change actions when a change is selected, and Promote when a follow-up is
+selected. An action listed that can't run for the selection, such as a change action with several
+changes selected, SHALL be shown disabled. An action that isn't set up in the project SHALL be
+disabled with the same explanation as today.
 
 #### Scenario: The context menu of a change
 - **WHEN** the user right-clicks a change with tasks in progress
 - **THEN** the change is selected and a menu opens with Jump to Source, then Apply, Verify, Archive and Explore
 
+#### Scenario: The context menu of a follow-up
+- **WHEN** the user right-clicks a follow-up
+- **THEN** the follow-up is selected and a menu opens with Jump to Source, then Promote, and no change actions
+
 #### Scenario: Several changes selected
 - **WHEN** the user selects two changes
-- **THEN** the change actions in the toolbar and context menu are disabled with a tooltip saying to select one change, and Jump to Source is still available
+- **THEN** the change actions in the toolbar are disabled with a tooltip saying to select one change, the context menu shows them disabled, and Jump to Source is still available
 
 #### Scenario: Nothing selected
 - **WHEN** no row is selected
@@ -124,8 +131,8 @@ project, across refreshes and when the IDE restarts. Changes SHALL NOT be affect
 ### Requirement: A change's likely next step is one click away
 Once a change is selected, one of its actions SHALL be a single click away as the toolbar's main
 action, chosen from the change's tasks: Explore while it has no tasks, Apply while some of its tasks
-remain, and Verify once all of them are done. Its other actions SHALL be one more click away, in
-that action's dropdown and in the change's context menu. Archive SHALL never be the single-click
+remain, and Verify once all of them are done. Its other actions SHALL be one more click away, in a
+dropdown beside that action and in the change's context menu. Archive SHALL never be the single-click
 action, since it is the one that is hard to undo.
 
 #### Scenario: A change still being planned

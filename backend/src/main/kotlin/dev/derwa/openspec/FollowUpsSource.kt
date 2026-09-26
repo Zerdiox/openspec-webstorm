@@ -11,6 +11,8 @@ import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 import kotlin.io.path.readText
 
+const val FOLLOW_UPS_FOLDER = "openspec/backlog/followup"
+
 data class FollowUp(
     val file: String,
     val id: String? = null,
@@ -26,7 +28,7 @@ object FollowUpsSource {
 
     /** The open follow-ups, or null when the project has no follow-ups backlog. */
     fun load(projectRoot: Path): List<FollowUp>? {
-        val folder = projectRoot.resolve("openspec/backlog/followup")
+        val folder = projectRoot.resolve(FOLLOW_UPS_FOLDER)
         if (!folder.isDirectory()) return null
         return folder.listDirectoryEntries("FU-*.md")
             .filter { it.isRegularFile() }

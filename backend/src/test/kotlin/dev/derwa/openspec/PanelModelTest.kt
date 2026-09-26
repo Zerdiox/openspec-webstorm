@@ -2,9 +2,16 @@ package dev.derwa.openspec
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.nio.file.Path
 
 class PanelModelTest {
+    @get:Rule
+    val temp = TemporaryFolder()
+
+    private val root = Path.of("/project")
     private val skillsWithBacklog = ProjectSetup(Delivery.SKILLS, hasBacklog = true)
     private val skillsOnly = ProjectSetup(Delivery.SKILLS, hasBacklog = false)
     private val twoChanges = ChangesResult.Loaded(
@@ -16,7 +23,7 @@ class PanelModelTest {
 
     @Test
     fun `project actions are explore, propose and backlog review with a backlog`() {
-        val model = panelModel(skillsWithBacklog, twoChanges, emptyList())
+        val model = panelModel(skillsWithBacklog, root, twoChanges, emptyList())
 
         assertEquals(
             listOf(Action.EXPLORE, Action.PROPOSE, Action.BACKLOG_REVIEW),
@@ -26,14 +33,14 @@ class PanelModelTest {
 
     @Test
     fun `no backlog review without a backlog`() {
-        val model = panelModel(skillsOnly, twoChanges, null)
+        val model = panelModel(skillsOnly, root, twoChanges, null)
 
         assertEquals(listOf(Action.EXPLORE, Action.PROPOSE), model.projectActions.map { it.action })
     }
 
     @Test
     fun `changes are listed with done out of total, and apply first while tasks remain`() {
-        val rows = (panelModel(skillsWithBacklog, twoChanges, null).changes as ChangesSection.Rows).rows
+        val rows = (panelModel(skillsWithBacklog, root, twoChanges, null).changes as ChangesSection.Rows).rows
 
         assertEquals(listOf("astro-7-upgrade", "plan-panel-fixes"), rows.map { it.name })
         assertEquals("3/10", rows[1].progress)
@@ -73,33 +80,33 @@ class PanelModelTest {
     }
 
     private fun actionsOf(change: Change): List<Action> =
-        (panelModel(skillsWithBacklog, ChangesResult.Loaded(listOf(change)), null).changes as ChangesSection.Rows)
+        (panelModel(skillsWithBacklog, root, ChangesResult.Loaded(listOf(change)), null).changes as ChangesSection.Rows)
             .rows.single().actions.map { it.action }
 
     @Test
     fun `unreadable changes say so and why`() {
-        val model = panelModel(skillsWithBacklog, ChangesResult.Unreadable("openspec wasn't found"), null)
+        val model = panelModel(skillsWithBacklog, root, ChangesResult.Unreadable("openspec wasn't found"), null)
 
         assertEquals(ChangesSection.Message("Couldn't read changes: openspec wasn't found"), model.changes)
     }
 
     @Test
     fun `no changes in flight says so`() {
-        val model = panelModel(skillsWithBacklog, ChangesResult.Loaded(emptyList()), null)
+        val model = panelModel(skillsWithBacklog, root, ChangesResult.Loaded(emptyList()), null)
 
         assertEquals(ChangesSection.Message("No changes in flight."), model.changes)
     }
 
     @Test
     fun `no follow-ups section without a backlog, even if the folder exists`() {
-        val model = panelModel(skillsOnly, twoChanges, listOf(FollowUp("FU-0001-a.md", id = "FU-0001")))
+        val model = panelModel(skillsOnly, root, twoChanges, listOf(FollowUp("FU-0001-a.md", id = "FU-0001")))
 
         assertNull(model.followUps)
     }
 
     @Test
     fun `a backlog without a follow-ups folder is an empty section`() {
-        assertEquals(emptyList<FollowUpRow>(), panelModel(skillsWithBacklog, twoChanges, null).followUps)
+        assertEquals(emptyList<FollowUpRow>(), panelModel(skillsWithBacklog, root, twoChanges, null).followUps)
     }
 
     @Test
@@ -109,7 +116,7 @@ class PanelModelTest {
             type = "test-gap", capability = "board-milestones",
         )
 
-        val row = panelModel(skillsWithBacklog, twoChanges, listOf(followUp)).followUps!!.single()
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single()
 
         assertEquals(
             FollowUpRow(
@@ -117,6 +124,9 @@ class PanelModelTest {
                 title = "A refused move is untested",
                 detail = "test-gap · board-milestones",
                 promote = ActionButton(Action.PROMOTE, "FU-0033", enabled = true),
+                file = Path.of("/project/openspec/backlog/followup/FU-0033-x.md"),
+                type = "test-gap",
+                capability = "board-milestones",
             ),
             row,
         )
@@ -126,7 +136,7 @@ class PanelModelTest {
     fun `an unreadable follow-up is identified by its file and marked unreadable`() {
         val followUp = FollowUp("FU-0040-broken.md", id = "FU-0040", unreadable = true)
 
-        val row = panelModel(skillsWithBacklog, twoChanges, listOf(followUp)).followUps!!.single()
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single()
 
         assertEquals(
             FollowUpRow(
@@ -134,6 +144,7 @@ class PanelModelTest {
                 title = "FU-0040-broken.md",
                 detail = "unreadable",
                 promote = ActionButton(Action.PROMOTE, "FU-0040", enabled = true),
+                file = Path.of("/project/openspec/backlog/followup/FU-0040-broken.md"),
                 unreadable = true,
             ),
             row,
@@ -144,12 +155,12 @@ class PanelModelTest {
     fun `a readable follow-up whose type is unreadable isn't marked unreadable`() {
         val followUp = FollowUp("FU-0050-x.md", id = "FU-0050", title = "Odd", type = "unreadable")
 
-        assertEquals(false, panelModel(skillsWithBacklog, twoChanges, listOf(followUp)).followUps!!.single().unreadable)
+        assertEquals(false, panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single().unreadable)
     }
 
     @Test
     fun `a follow-up without any id can't be promoted`() {
-        val row = panelModel(skillsWithBacklog, twoChanges, listOf(FollowUp("FU-x.md", unreadable = true)))
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(FollowUp("FU-x.md", unreadable = true)))
             .followUps!!.single()
 
         assertEquals("FU-x.md", row.id)
@@ -158,7 +169,7 @@ class PanelModelTest {
 
     @Test
     fun `workflow buttons are disabled when openspec isn't set up for claude`() {
-        val model = panelModel(ProjectSetup(null, hasBacklog = true), twoChanges, emptyList())
+        val model = panelModel(ProjectSetup(null, hasBacklog = true), root, twoChanges, emptyList())
 
         assertEquals(listOf(false, false, true), model.projectActions.map { it.enabled })
         val row = (model.changes as ChangesSection.Rows).rows.first()
@@ -180,5 +191,20 @@ class PanelModelTest {
             "propose: Don't show \$cost when it's 0 and…",
             tabName(Action.PROPOSE, "Don't show \$cost when it's 0 and also other things"),
         )
+    }
+
+    @Test
+    fun `a change opens its proposal when there is one`() {
+        val folder = temp.newFolder("with-proposal").toPath()
+        val proposal = folder.resolve("proposal.md").also { it.toFile().writeText("# Proposal") }
+
+        assertEquals(proposal, changeOpenTarget(folder))
+    }
+
+    @Test
+    fun `a change without a proposal opens its folder`() {
+        val folder = temp.newFolder("scaffolded").toPath()
+
+        assertEquals(folder, changeOpenTarget(folder))
     }
 }

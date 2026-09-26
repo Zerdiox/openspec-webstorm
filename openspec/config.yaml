@@ -10,6 +10,11 @@ context: |
   How OpenSpec is used here:
   - A change's artifacts are the plan; don't also run superpowers brainstorming or writing-plans.
     TDD and verification-before-completion still govern apply.
+  - Subagents are welcome for read-only work in any command: codebase and platform-source/API
+    research during explore, propose and apply (fan out independent lookups), and during apply a
+    review of the finished diff against the change's specs and design. Writing artifacts and
+    implementation stay in the main session, one task at a time, since tasks share files and the
+    Gradle build.
   - Every write needs Derwa's explicit go: before propose, before apply, before archive.
   - openspec/changes/ is transient scratch: code, config and docs never cite it. openspec/specs/ is
     durable intended behaviour.

@@ -94,9 +94,6 @@ None.
   - FU-0005, the spec browser, stays open. It's the expected second user of the reusable tree
     set-up.
   - FU-0006, FU-0007 and FU-0008 are unrelated and stay open.
-- `reworked-tabs-under-remote-development` is complete but not yet archived and also adds
-  requirements to `openspec-workflow-panel`. This change modifies two existing requirements that
-  it doesn't touch, so they don't conflict, but archiving it first keeps the main spec current.
 
 ## Resolves
 
