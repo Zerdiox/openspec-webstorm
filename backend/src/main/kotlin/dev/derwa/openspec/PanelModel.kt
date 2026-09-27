@@ -31,10 +31,15 @@ internal data class FollowUpRow(
     val file: Path,
     val type: String? = null,
     val capability: String? = null,
-    val unreadable: Boolean = false,
+    val problem: Problem? = null,
 ) : PanelItem {
     // The file name, since an unreadable follow-up may have no ID.
     override val key get() = "followup:${file.fileName}"
+
+    val unreadable: Boolean get() = problem != null
+
+    /** The line to open the file at, for an unreadable follow-up. */
+    val line: Int? get() = problem?.line
 }
 
 internal sealed interface ChangesSection {
@@ -88,16 +93,16 @@ internal fun panelModel(setup: ProjectSetup, projectRoot: Path, changes: Changes
             FollowUpRow(
                 id = followUp.id ?: followUp.file,
                 title = if (followUp.unreadable) followUp.file else followUp.title.orEmpty(),
-                detail = if (followUp.unreadable) {
-                    "unreadable"
+                detail = if (followUp.problem != null) {
+                    "unreadable: ${followUp.problem.reason}"
                 } else {
                     listOfNotNull(followUp.type, followUp.capability).joinToString(" · ")
                 },
-                promote = followUp.id?.let { button(Action.PROMOTE, it) },
+                promote = followUp.id?.takeIf { !followUp.unreadable }?.let { button(Action.PROMOTE, it) },
                 file = projectRoot.resolve(FOLLOW_UPS_FOLDER).resolve(followUp.file),
                 type = followUp.type,
                 capability = followUp.capability,
-                unreadable = followUp.unreadable,
+                problem = followUp.problem,
             )
         }
     }

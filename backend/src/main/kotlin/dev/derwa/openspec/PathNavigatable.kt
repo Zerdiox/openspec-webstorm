@@ -9,8 +9,8 @@ import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiManager
 import java.nio.file.Path
 
-/** Opens a file in the editor, or selects a folder in the project tree. */
-internal class PathNavigatable(private val project: Project, private val path: Path) : Navigatable {
+/** Opens a file in the editor, at its 1-based [line] when one is given, or selects a folder in the project tree. */
+internal class PathNavigatable(private val project: Project, private val path: Path, private val line: Int? = null) : Navigatable {
     override fun navigate(requestFocus: Boolean) {
         // A file Claude Code wrote outside the IDE may not be in the VFS yet.
         val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path) ?: return
@@ -18,7 +18,8 @@ internal class PathNavigatable(private val project: Project, private val path: P
             ReadAction.computeBlocking<_, RuntimeException> { PsiManager.getInstance(project).findDirectory(file) }
                 ?.let { PsiNavigationSupport.getInstance().navigateToDirectory(it, requestFocus) }
         } else {
-            OpenFileDescriptor(project, file).navigate(requestFocus)
+            val descriptor = if (line != null) OpenFileDescriptor(project, file, line - 1, 0) else OpenFileDescriptor(project, file)
+            descriptor.navigate(requestFocus)
         }
     }
 

@@ -21,7 +21,9 @@ class SelectionActionsTest {
         listOf(
             FollowUp("FU-0003-a.md", id = "FU-0003", title = "A"),
             FollowUp("FU-0004-b.md", id = "FU-0004", title = "B"),
-            FollowUp("FU-x.md", unreadable = true),
+            FollowUp("FU-x.md", problem = Problem("no frontmatter", 1)),
+            FollowUp("notes.md", title = "Notes"),
+            FollowUp("F40-broken.md", id = "F40", problem = Problem("YAML error on line 4", 4)),
         ),
     )
     private val changes = (model.changes as ChangesSection.Rows).rows
@@ -59,9 +61,29 @@ class SelectionActionsTest {
 
     @Test
     fun `a follow-up without an id can't be promoted`() {
-        val actions = selectionActions(setup, listOf(followUps[0], followUps[2]))
+        val actions = selectionActions(setup, listOf(followUps[0], followUps[3]))
 
         assertEquals(PromoteOffer(emptyList(), enabled = false, reason = NO_ID), actions.promote)
+    }
+
+    @Test
+    fun `an unreadable follow-up can't be promoted, from the toolbar or the context menu`() {
+        for (place in Place.entries) {
+            assertEquals(
+                PromoteOffer(emptyList(), enabled = false, reason = UNREADABLE),
+                selectionActions(setup, listOf(followUps[4]), place = place).promote,
+            )
+            assertEquals(
+                PromoteOffer(emptyList(), enabled = false, reason = UNREADABLE),
+                selectionActions(setup, listOf(followUps[0], followUps[4]), place = place).promote,
+            )
+        }
+    }
+
+    @Test
+    fun `the unreadable reason wins over the missing id`() {
+        assertEquals(UNREADABLE, selectionActions(setup, listOf(followUps[2])).promote!!.reason)
+        assertEquals(UNREADABLE, selectionActions(setup, listOf(followUps[2], followUps[3])).promote!!.reason)
     }
 
     @Test

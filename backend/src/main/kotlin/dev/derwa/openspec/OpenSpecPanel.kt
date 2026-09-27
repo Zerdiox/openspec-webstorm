@@ -54,7 +54,7 @@ internal class OpenSpecPanel(private val project: Project, private val root: Pat
             sink[PANEL] = this@OpenSpecPanel
             val selection = selectedItems()
             sink.lazy(CommonDataKeys.NAVIGATABLE_ARRAY) {
-                selection.map { PathNavigatable(project, openTarget(it)) }.toTypedArray<Navigatable>().takeIf { it.isNotEmpty() }
+                selection.map { PathNavigatable(project, openTarget(it), (it as? FollowUpRow)?.line) }.toTypedArray<Navigatable>().takeIf { it.isNotEmpty() }
             }
         }
     }.apply {
@@ -248,10 +248,18 @@ internal class OpenSpecPanel(private val project: Project, private val root: Pat
                     text.append("  ${item.progress}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 }
                 is FollowUpRow -> {
-                    text.append("${item.id}  ${item.title}")
-                    val attributes = if (item.unreadable) SimpleTextAttributes.ERROR_ATTRIBUTES else SimpleTextAttributes.GRAYED_ATTRIBUTES
-                    if (item.detail.isNotEmpty()) text.append("  ${item.detail}", attributes)
-                    toolTipText = listOf(item.title, item.detail).filter { it.isNotEmpty() }.joinToString(" · ")
+                    val problem = item.problem
+                    if (problem != null) {
+                        // The title is the file name, which the ID was taken from.
+                        text.append(item.title)
+                        text.append("  ${item.detail}", SimpleTextAttributes.ERROR_ATTRIBUTES)
+                        val reason = listOfNotNull(problem.reason, problem.message).joinToString(": ")
+                        toolTipText = "${item.title} · $reason"
+                    } else {
+                        text.append("${item.id}  ${item.title}")
+                        if (item.detail.isNotEmpty()) text.append("  ${item.detail}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                        toolTipText = listOf(item.title, item.detail).filter { it.isNotEmpty() }.joinToString(" · ")
+                    }
                 }
             }
         }

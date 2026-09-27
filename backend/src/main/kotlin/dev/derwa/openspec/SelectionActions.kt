@@ -5,6 +5,7 @@ internal const val SELECT_ONE_CHANGE = "Select one change"
 internal const val SELECT_FOLLOW_UPS = "Check or select one or more follow-ups"
 internal const val ONLY_FOLLOW_UPS = "Select only follow-ups to promote"
 internal const val NO_ID = "A follow-up without an ID can't be promoted"
+internal const val UNREADABLE = "An unreadable follow-up can't be promoted"
 
 /** An action as offered for the current selection; [reason] says why it's disabled. */
 internal data class OfferedAction(val action: Action, val target: String?, val enabled: Boolean, val reason: String? = null)
@@ -62,6 +63,7 @@ internal fun selectionActions(
             val reason = when {
                 followUps.isEmpty() -> SELECT_FOLLOW_UPS
                 changes.isNotEmpty() || includesOther -> ONLY_FOLLOW_UPS
+                followUps.any { it.unreadable } -> UNREADABLE
                 followUps.any { it.promote == null } -> NO_ID
                 else -> null
             }

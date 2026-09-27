@@ -1,7 +1,9 @@
 package dev.derwa.openspec
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -98,10 +100,20 @@ class FollowUpsSourceTest {
     fun `broken yaml is listed as unreadable, identified by its file`() {
         followUp("FU-0040-broken.md", "---\nid: FU-0040\ntitle: A title: with: colons\n  bad: [indent\n---\n")
 
-        assertEquals(
-            listOf(FollowUp(file = "FU-0040-broken.md", id = "FU-0040", unreadable = true)),
-            FollowUpsSource.load(root),
-        )
+        val followUp = FollowUpsSource.load(root)!!.single()
+        assertEquals("FU-0040-broken.md", followUp.file)
+        assertEquals("FU-0040", followUp.id)
+        assertTrue(followUp.unreadable)
+    }
+
+    @Test
+    fun `a yaml error gives its line in the file and the parser's message`() {
+        followUp("F40-broken.md", "---\nid: F40\ntype: bug\ntitle: A: b\n---\n")
+
+        val problem = FollowUpsSource.load(root)!!.single().problem!!
+        assertEquals("YAML error on line 4", problem.reason)
+        assertEquals(4, problem.line)
+        assertEquals("mapping values are not allowed here", problem.message)
     }
 
     @Test
@@ -109,9 +121,44 @@ class FollowUpsSourceTest {
         followUp("FU-0041-no-frontmatter.md", "# Just a heading\n")
 
         assertEquals(
-            listOf(FollowUp(file = "FU-0041-no-frontmatter.md", id = "FU-0041", unreadable = true)),
+            listOf(FollowUp(file = "FU-0041-no-frontmatter.md", id = "FU-0041", problem = Problem("no frontmatter", 1))),
             FollowUpsSource.load(root),
         )
+    }
+
+    @Test
+    fun `frontmatter that isn't closed is unreadable`() {
+        followUp("F42-open.md", "---\nid: F42\ntitle: Never closed\n")
+
+        assertEquals(Problem("frontmatter isn't closed", 1), FollowUpsSource.load(root)!!.single().problem)
+    }
+
+    @Test
+    fun `frontmatter that isn't a map is unreadable`() {
+        followUp("F43-list.md", "---\n- one\n- two\n---\n")
+        followUp("F44-scalar.md", "---\njust text\n---\n")
+        followUp("F45-empty.md", "---\n---\n")
+
+        assertEquals(
+            List(3) { Problem("frontmatter isn't a list of fields", 2) },
+            FollowUpsSource.load(root)!!.map { it.problem },
+        )
+    }
+
+    @Test
+    fun `an unreadable file keeps the id from its file name`() {
+        followUp("F46-broken.md", "no frontmatter\n")
+
+        assertEquals("F46", FollowUpsSource.load(root)!!.single().id)
+    }
+
+    @Test
+    fun `a readable file has no problem`() {
+        followUp("F47-fine.md", "---\nid: F47\ntitle: Fine\n---\n")
+
+        val followUp = FollowUpsSource.load(root)!!.single()
+        assertNull(followUp.problem)
+        assertFalse(followUp.unreadable)
     }
 
     @Test

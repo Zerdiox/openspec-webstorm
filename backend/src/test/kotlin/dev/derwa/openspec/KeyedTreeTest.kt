@@ -50,7 +50,7 @@ class KeyedTreeTest {
             ProjectSetup(Delivery.SKILLS, hasBacklog = true),
             Path.of("/project"),
             ChangesResult.Loaded(listOf(Change("plan-panel-fixes", 3, 10, "in-progress"))),
-            listOf(FollowUp("FU-0003-a.md", id = "FU-0003", title = "A"), FollowUp("FU-x.md", unreadable = true)),
+            listOf(FollowUp("FU-0003-a.md", id = "FU-0003", title = "A"), FollowUp("FU-x.md", problem = Problem("no frontmatter", 1))),
         )
 
         assertEquals("change:plan-panel-fixes", (model.changes as ChangesSection.Rows).rows.single().key)
@@ -63,7 +63,7 @@ class KeyedTreeTest {
             ProjectSetup(Delivery.SKILLS, hasBacklog = true),
             Path.of("/project"),
             ChangesResult.Loaded(listOf(Change("plan-panel-fixes", 3, 10, "in-progress"))),
-            listOf(FollowUp("FU-x.md", unreadable = true)),
+            listOf(FollowUp("FU-x.md", problem = Problem("no frontmatter", 1))),
         )
 
         assertEquals(

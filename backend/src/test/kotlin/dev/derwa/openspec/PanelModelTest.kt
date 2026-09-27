@@ -134,8 +134,9 @@ class PanelModelTest {
     }
 
     @Test
-    fun `an unreadable follow-up is identified by its file and marked unreadable`() {
-        val followUp = FollowUp("FU-0040-broken.md", id = "FU-0040", unreadable = true)
+    fun `an unreadable follow-up shows its file once, with why, and can't be promoted`() {
+        val problem = Problem("YAML error on line 4", 4, "mapping values are not allowed here")
+        val followUp = FollowUp("FU-0040-broken.md", id = "FU-0040", problem = problem)
 
         val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single()
 
@@ -143,28 +144,43 @@ class PanelModelTest {
             FollowUpRow(
                 id = "FU-0040",
                 title = "FU-0040-broken.md",
-                detail = "unreadable",
-                promote = ActionButton(Action.PROMOTE, "FU-0040", enabled = true),
+                detail = "unreadable: YAML error on line 4",
+                promote = null,
                 file = Path.of("/project/openspec/backlog/followup/FU-0040-broken.md"),
-                unreadable = true,
+                problem = problem,
             ),
             row,
         )
+        assertEquals(true, row.unreadable)
+        assertEquals(4, row.line)
     }
 
     @Test
     fun `a readable follow-up whose type is unreadable isn't marked unreadable`() {
         val followUp = FollowUp("FU-0050-x.md", id = "FU-0050", title = "Odd", type = "unreadable")
 
-        assertEquals(false, panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single().unreadable)
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(followUp)).followUps!!.single()
+        assertEquals(false, row.unreadable)
+        assertNull(row.line)
     }
 
     @Test
-    fun `a follow-up without any id can't be promoted`() {
-        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(FollowUp("FU-x.md", unreadable = true)))
+    fun `an unreadable follow-up without any id is identified by its file name`() {
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(FollowUp("FU-x.md", problem = Problem("no frontmatter", 1))))
             .followUps!!.single()
 
         assertEquals("FU-x.md", row.id)
+        assertEquals("FU-x.md", row.title)
+        assertEquals("unreadable: no frontmatter", row.detail)
+        assertNull(row.promote)
+    }
+
+    @Test
+    fun `a readable follow-up without any id can't be promoted`() {
+        val row = panelModel(skillsWithBacklog, root, twoChanges, listOf(FollowUp("notes.md", title = "Notes")))
+            .followUps!!.single()
+
+        assertEquals("notes.md", row.id)
         assertNull(row.promote)
     }
 

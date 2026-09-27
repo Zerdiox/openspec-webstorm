@@ -15,7 +15,7 @@ class FollowUpViewTest {
             FollowUp("FU-0002-b.md", id = "FU-0002", title = "B", type = "bug", capability = "panel"),
             FollowUp("FU-0003-c.md", id = "FU-0003", title = "C", type = "tech-debt", capability = "launcher"),
             FollowUp("FU-0004-d.md", id = "FU-0004", title = "D"),
-            FollowUp("FU-0005-e.md", id = "FU-0005", unreadable = true),
+            FollowUp("FU-0005-e.md", id = "FU-0005", problem = Problem("no frontmatter", 1)),
         ),
     ).followUps!!
 

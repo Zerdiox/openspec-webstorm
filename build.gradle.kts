@@ -67,6 +67,7 @@ intellijPlatform {
             create(IntelliJPlatformType.WebStorm, "2026.2.3")
             create(IntelliJPlatformType.PhpStorm, "2026.1.5")
             create(IntelliJPlatformType.PhpStorm, "2026.2.3")
+            create(IntelliJPlatformType.AndroidStudio, "2026.1.4.7")
         }
     }
 }

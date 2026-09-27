@@ -3,6 +3,7 @@ package dev.derwa.openspec
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
+import org.yaml.snakeyaml.error.MarkedYAMLException
 import org.yaml.snakeyaml.error.YAMLException
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
@@ -19,8 +20,13 @@ internal data class FollowUp(
     val title: String? = null,
     val type: String? = null,
     val capability: String? = null,
-    val unreadable: Boolean = false,
-)
+    val problem: Problem? = null,
+) {
+    val unreadable: Boolean get() = problem != null
+}
+
+/** Why a follow-up can't be read: a short [reason], the 1-based [line] of the file to open at, and the parser's own [message]. */
+internal data class Problem(val reason: String, val line: Int, val message: String? = null)
 
 /** Reads a project's open follow-ups from the frontmatter of its backlog files. */
 internal object FollowUpsSource {
@@ -43,12 +49,10 @@ internal object FollowUpsSource {
 
     private fun read(file: Path): FollowUp {
         val fileId = FILE_ID.find(file.name)?.value
-        val unreadable = FollowUp(file = file.name, id = fileId, unreadable = true)
-        val fields = try {
-            frontmatter(file.readText())?.let(::parseYaml)
-        } catch (e: YAMLException) {
-            null
-        } ?: return unreadable
+        val fields = when (val result = fields(file.readText())) {
+            is Fields.Read -> result.fields
+            is Fields.Unreadable -> return FollowUp(file = file.name, id = fileId, problem = result.problem)
+        }
 
         fun field(key: String) = fields[key]?.toString()?.takeIf { it.isNotBlank() }
         return FollowUp(
@@ -60,15 +64,36 @@ internal object FollowUpsSource {
         )
     }
 
-    /** The YAML between the opening `---` line and the next one, or null without frontmatter. */
-    private fun frontmatter(text: String): String? {
-        val lines = text.lines()
-        if (lines.firstOrNull()?.trimEnd() != "---") return null
-        val end = lines.drop(1).indexOfFirst { it.trimEnd() == "---" }
-        if (end < 0) return null
-        return lines.subList(1, end + 1).joinToString("\n")
+    private sealed interface Fields {
+        data class Read(val fields: Map<*, *>) : Fields
+        data class Unreadable(val problem: Problem) : Fields
     }
 
-    private fun parseYaml(yaml: String): Map<*, *>? =
-        Yaml(SafeConstructor(LoaderOptions())).load<Any?>(yaml) as? Map<*, *>
+    /** The fields of the YAML between the opening `---` line and the next one. */
+    private fun fields(text: String): Fields {
+        val lines = text.lines()
+        if (lines.firstOrNull()?.trimEnd() != "---") return Fields.Unreadable(Problem("no frontmatter", 1))
+        val end = lines.drop(1).indexOfFirst { it.trimEnd() == "---" }
+        if (end < 0) return Fields.Unreadable(Problem("frontmatter isn't closed", 1))
+        // The closing `---` is file line end + 2; a problem is never placed past it.
+        val closingLine = end + 2
+        val parsed = try {
+            parseYaml(lines.subList(1, end + 1).joinToString("\n"))
+        } catch (e: YAMLException) {
+            val mark = (e as? MarkedYAMLException)?.problemMark
+            // The parser counts from 0 within the frontmatter, which starts on the file's second line.
+            val line = mark?.let { minOf(it.line + 2, closingLine) }
+            return Fields.Unreadable(
+                Problem(
+                    reason = if (line != null) "YAML error on line $line" else "YAML error",
+                    line = line ?: 2,
+                    message = (e as? MarkedYAMLException)?.problem,
+                ),
+            )
+        }
+        return (parsed as? Map<*, *>)?.let(Fields::Read)
+            ?: Fields.Unreadable(Problem("frontmatter isn't a list of fields", 2))
+    }
+
+    private fun parseYaml(yaml: String): Any? = Yaml(SafeConstructor(LoaderOptions())).load<Any?>(yaml)
 }
