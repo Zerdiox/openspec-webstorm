@@ -45,4 +45,19 @@ class ShellEnvironmentTest {
     fun `a shell that can't be started gives no environment`() {
         assertNull(readShellEnvironment("/nonexistent/shell", home()))
     }
+
+    @Test
+    fun `uses SHELL as the user's shell`() {
+        assertEquals("/bin/zsh", userShell(mapOf("SHELL" to "/bin/zsh"), windows = false))
+    }
+
+    @Test
+    fun `falls back to sh without SHELL`() {
+        assertEquals("/bin/sh", userShell(emptyMap(), windows = false))
+    }
+
+    @Test
+    fun `has no login shell to read on Windows`() {
+        assertNull(userShell(mapOf("SHELL" to "/usr/bin/bash"), windows = true))
+    }
 }
