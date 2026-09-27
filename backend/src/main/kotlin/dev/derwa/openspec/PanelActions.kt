@@ -1,6 +1,7 @@
 package dev.derwa.openspec
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -12,6 +13,11 @@ import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DoNotAskOption
+import com.intellij.openapi.ui.MessageDialogBuilder
+import com.intellij.openapi.ui.Messages
+import java.nio.file.Path
 
 private fun AnActionEvent.panel() = getData(OpenSpecPanel.PANEL)
 
@@ -20,7 +26,7 @@ private fun label(action: Action) = action.label.replaceFirstChar { it.uppercase
 private fun AnAction.showingText() = apply { templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true) }
 
 /** Explore…, Propose… and Backlog review, then the selection's actions, the filter and Group By. */
-fun toolbarActions(): ActionGroup = DefaultActionGroup(
+internal fun toolbarActions(): ActionGroup = DefaultActionGroup(
     ProjectAction(Action.EXPLORE).showingText(),
     ProjectAction(Action.PROPOSE).showingText(),
     ProjectAction(Action.BACKLOG_REVIEW).showingText(),
@@ -33,9 +39,10 @@ fun toolbarActions(): ActionGroup = DefaultActionGroup(
     GroupFollowUps(),
 )
 
-/** Jump to Source, then the selection's actions. */
-fun contextMenuActions(): ActionGroup = DefaultActionGroup(
+/** Jump to Source, the selected change's artifacts, then the selection's actions. */
+internal fun contextMenuActions(): ActionGroup = DefaultActionGroup(
     ActionManager.getInstance().getAction(IdeActions.ACTION_EDIT_SOURCE),
+    OpenArtifacts(),
     Separator.create(),
     ChangeAction(0),
     ChangeAction(1),
@@ -100,6 +107,60 @@ private class ChangeAction(private val index: Int) : PanelAction() {
     }
 }
 
+/** Opens the selected change's proposal, design, tasks or one of its specs; shown when a change is selected. */
+private class OpenArtifacts : ActionGroup("Open", true) {
+    override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+    override fun update(e: AnActionEvent) {
+        val panel = e.panel()
+        e.presentation.isVisible = panel?.selectedItems()?.any { it is ChangeRow } == true
+        val enabled = panel?.selectedChange() != null
+        e.presentation.isEnabled = enabled
+        e.presentation.description = if (enabled) null else SELECT_ONE_CHANGE
+    }
+
+    override fun getChildren(e: AnActionEvent?): Array<AnAction> {
+        val change = e?.panel()?.selectedChange() ?: return emptyArray()
+        val artifacts = changeArtifacts(change.folder)
+        return arrayOf(
+            OpenFile("Proposal", artifacts.proposal, "No proposal yet"),
+            OpenFile("Design", artifacts.design, "No design yet"),
+            OpenFile("Tasks", artifacts.tasks, "No tasks yet"),
+            OpenSpecs(artifacts.specs),
+        )
+    }
+}
+
+/** The change's specs, one entry per capability; disabled while it has none. */
+private class OpenSpecs(private val specs: List<DeltaSpec>) : ActionGroup("Specs", true) {
+    override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabled = specs.isNotEmpty()
+        e.presentation.description = if (specs.isEmpty()) "No specs yet" else null
+    }
+
+    override fun getChildren(e: AnActionEvent?): Array<AnAction> =
+        specs.map { OpenFile(it.capability, it.file, null) }.toTypedArray()
+}
+
+/** Opens [file] in the editor; disabled with [missing] as the reason while the change doesn't have it. */
+private class OpenFile(text: String, private val file: Path?, private val missing: String?) : PanelAction() {
+    init {
+        // A capability name is not a mnemonic.
+        templatePresentation.setText(text, false)
+    }
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabled = file != null
+        e.presentation.description = if (file == null) missing else null
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        PathNavigatable(e.project ?: return, file ?: return).navigate(true)
+    }
+}
+
 /** The selected change's other actions, in a dropdown next to its next step. */
 private class MoreChangeActions : DefaultActionGroup(ChangeAction(1), ChangeAction(2), ChangeAction(3)) {
     init {
@@ -120,28 +181,55 @@ private class MoreChangeActions : DefaultActionGroup(ChangeAction(1), ChangeActi
     }
 }
 
+/** Promote: from the toolbar for the checked follow-ups or else the selection, from the context menu for the rows clicked. */
 private class PromoteAction : PanelAction() {
     init {
         templatePresentation.text = label(Action.PROMOTE)
     }
 
-    private fun offered(e: AnActionEvent): OfferedAction? {
+    private fun offered(e: AnActionEvent): PromoteOffer? {
         val panel = e.panel() ?: return null
-        return panel.selectionActions().promote
+        return panel.selectionActions(if (e.isFromContextMenu) Place.CONTEXT_MENU else Place.TOOLBAR).promote
     }
 
     override fun update(e: AnActionEvent) {
         val offered = offered(e)
         val relevant = e.panel()?.selectedItems()?.any { it is FollowUpRow } == true
         e.presentation.isVisible = offered != null && (!e.isFromContextMenu || relevant)
-        e.presentation.isEnabled = offered?.enabled == true
-        e.presentation.description = offered?.reason ?: "Explore the selected follow-ups as a candidate change"
+        if (offered == null) return
+        e.presentation.text = offered.label
+        e.presentation.isEnabled = offered.enabled
+        e.presentation.description = offered.reason
+            ?: "Explore ${offered.followUps.joinToString(", ") { it.id }} as a candidate change"
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val offered = offered(e)?.takeIf { it.enabled } ?: return
-        e.panel()?.launch(offered.action, offered.target)
+        val project = e.project ?: return
+        if (offered.confirm && !confirmPromote(project, offered.followUps)) return
+        e.panel()?.launch(Action.PROMOTE, offered.target)
     }
+}
+
+private const val DONT_ASK_PROMOTE_SETTING = "dev.derwa.openspec.promote.dontAsk"
+
+/** Asks before promoting several follow-ups together, unless the user chose not to be asked again. */
+private fun confirmPromote(project: Project, followUps: List<FollowUpRow>): Boolean {
+    // The same question in every project, so the choice is kept for the IDE.
+    val settings = PropertiesComponent.getInstance()
+    if (settings.getBoolean(DONT_ASK_PROMOTE_SETTING)) return true
+    val list = followUps.joinToString("\n") { "${it.id}  ${it.title}" }
+    return MessageDialogBuilder.okCancel(
+        "Promote ${followUps.size} Follow-ups",
+        "Explore these follow-ups together in one Claude Code session?\n\n$list",
+    )
+        .yesText("Promote")
+        .doNotAsk(object : DoNotAskOption.Adapter() {
+            override fun rememberChoice(isSelected: Boolean, exitCode: Int) {
+                if (isSelected && exitCode == Messages.OK) settings.setValue(DONT_ASK_PROMOTE_SETTING, true)
+            }
+        })
+        .ask(project)
 }
 
 /** Filters the follow-ups by type and capability; the choices follow the open follow-ups. */

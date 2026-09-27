@@ -1,32 +1,35 @@
 package dev.derwa.openspec
 
 /** The filter value and group for a follow-up that has no type or no capability. */
-const val NONE_VALUE = "none"
+internal const val NONE_VALUE = "none"
 
 private val KNOWN_TYPES = listOf("bug", "tech-debt", "test-gap", "idea")
 
-enum class Grouping { NONE, TYPE, CAPABILITY }
+internal enum class Grouping { NONE, TYPE, CAPABILITY }
 
 /** How the follow-ups are shown: the types and capabilities hidden, and how they're grouped. */
-data class FollowUpView(
+internal data class FollowUpView(
     val hiddenTypes: Set<String> = emptySet(),
     val hiddenCapabilities: Set<String> = emptySet(),
     val grouping: Grouping = Grouping.NONE,
 )
 
-data class FollowUpGroup(val key: String, val label: String, val rows: List<FollowUpRow>)
+internal data class FollowUpGroup(val key: String, val label: String, val rows: List<FollowUpRow>)
 
 /** The follow-ups shown, and their [groups] when grouped; [filtered] when the filter hides any. */
-data class FollowUpSection(val rows: List<FollowUpRow>, val groups: List<FollowUpGroup>?, val filtered: Boolean) {
+internal data class FollowUpSection(val rows: List<FollowUpRow>, val groups: List<FollowUpGroup>?, val filtered: Boolean) {
     val count get() = rows.size
+
+    /** The rows shown, in the order the tree lists them. */
+    val listed get() = groups?.flatMap { it.rows } ?: rows
 }
 
-data class FilterChoices(val types: List<String>, val capabilities: List<String>)
+internal data class FilterChoices(val types: List<String>, val capabilities: List<String>)
 
 private val FollowUpRow.typeValue get() = type ?: NONE_VALUE
 private val FollowUpRow.capabilityValue get() = capability ?: NONE_VALUE
 
-fun followUpSection(rows: List<FollowUpRow>, view: FollowUpView): FollowUpSection {
+internal fun followUpSection(rows: List<FollowUpRow>, view: FollowUpView): FollowUpSection {
     // An unreadable follow-up has no type or capability to filter on, and hiding it would hide the problem.
     val shown = rows.filter {
         it.unreadable || (it.typeValue !in view.hiddenTypes && it.capabilityValue !in view.hiddenCapabilities)
@@ -60,7 +63,7 @@ private fun typeOrder(types: List<String>) =
     KNOWN_TYPES.filter { it in types } + types.filter { it !in KNOWN_TYPES }.sorted()
 
 /** The filter's choices: the known types always, plus whatever the open follow-ups use. */
-fun filterChoices(rows: List<FollowUpRow>): FilterChoices {
+internal fun filterChoices(rows: List<FollowUpRow>): FilterChoices {
     val readable = rows.filter { !it.unreadable }
     fun withNone(values: List<String>, anyMissing: Boolean) = values + listOfNotNull(NONE_VALUE.takeIf { anyMissing })
     return FilterChoices(
@@ -68,3 +71,7 @@ fun filterChoices(rows: List<FollowUpRow>): FilterChoices {
         capabilities = withNone(readable.mapNotNull { it.capability }.distinct().sorted(), readable.any { it.capability == null }),
     )
 }
+
+/** The checked keys still among the open follow-ups [rows], shown or hidden; a resolved follow-up drops out. */
+internal fun keptChecks(checked: Set<String>, rows: List<FollowUpRow>): Set<String> =
+    checked intersect rows.map { it.key }.toSet()

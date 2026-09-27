@@ -1,16 +1,20 @@
 package dev.derwa.openspec
 
+import java.io.IOException
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 
-data class ActionButton(val action: Action, val target: String?, val enabled: Boolean)
+internal data class ActionButton(val action: Action, val target: String?, val enabled: Boolean)
 
 /** A change or follow-up the panel lists; its [key] stays the same across refreshes. */
-sealed interface PanelItem {
+internal sealed interface PanelItem {
     val key: String
 }
 
-data class ChangeRow(
+internal data class ChangeRow(
     val name: String,
     val progress: String,
     val actions: List<ActionButton>,
@@ -19,7 +23,7 @@ data class ChangeRow(
     override val key get() = "change:$name"
 }
 
-data class FollowUpRow(
+internal data class FollowUpRow(
     val id: String,
     val title: String,
     val detail: String,
@@ -33,13 +37,13 @@ data class FollowUpRow(
     override val key get() = "followup:${file.fileName}"
 }
 
-sealed interface ChangesSection {
+internal sealed interface ChangesSection {
     data class Rows(val rows: List<ChangeRow>) : ChangesSection
     data class Message(val text: String) : ChangesSection
 }
 
 /** What the panel shows: a null [followUps] means the project has no follow-ups section at all. */
-data class PanelModel(
+internal data class PanelModel(
     val projectActions: List<ActionButton>,
     val changes: ChangesSection,
     val followUps: List<FollowUpRow>?,
@@ -47,7 +51,7 @@ data class PanelModel(
 
 private const val TAB_TARGET_LENGTH = 32
 
-fun panelModel(setup: ProjectSetup, projectRoot: Path, changes: ChangesResult, followUps: List<FollowUp>?): PanelModel {
+internal fun panelModel(setup: ProjectSetup, projectRoot: Path, changes: ChangesResult, followUps: List<FollowUp>?): PanelModel {
     val resolver = CommandResolver(setup)
     fun button(action: Action, target: String?) =
         ActionButton(action, target, enabled = resolver.command(action, target) != null)
@@ -109,7 +113,7 @@ private fun changeActions(change: Change): List<Action> = when {
 }
 
 /** A terminal tab's name: the action, and its target's first line shortened. */
-fun tabName(action: Action, target: String?): String {
+internal fun tabName(action: Action, target: String?): String {
     val line = target?.lineSequence()?.firstOrNull()?.trim().orEmpty()
     if (line.isEmpty()) return action.label
     val shortened = if (line.length > TAB_TARGET_LENGTH) line.take(TAB_TARGET_LENGTH).trimEnd() + "…" else line
@@ -117,5 +121,31 @@ fun tabName(action: Action, target: String?): String {
 }
 
 /** What opening a change shows: its proposal, or its folder until it has one. */
-fun changeOpenTarget(folder: Path): Path =
+internal fun changeOpenTarget(folder: Path): Path =
     folder.resolve("proposal.md").takeIf { Files.isRegularFile(it) } ?: folder
+
+/** A spec a change adds or modifies: its capability, with any domain (`identity/user-auth`), and its file. */
+internal data class DeltaSpec(val capability: String, val file: Path)
+
+/** The files a change has of its proposal, design, tasks and specs; null or empty where it has none yet. */
+internal data class ChangeArtifacts(val proposal: Path?, val design: Path?, val tasks: Path?, val specs: List<DeltaSpec>)
+
+internal fun changeArtifacts(folder: Path): ChangeArtifacts {
+    fun file(name: String) = folder.resolve(name).takeIf { Files.isRegularFile(it) }
+    val specsFolder = folder.resolve("specs")
+    val specs = mutableListOf<DeltaSpec>()
+    if (Files.isDirectory(specsFolder)) {
+        Files.walkFileTree(specsFolder, object : SimpleFileVisitor<Path>() {
+            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                if (file.fileName.toString() == "spec.md" && attrs.isRegularFile && file.parent != specsFolder) {
+                    specs += DeltaSpec(specsFolder.relativize(file.parent).joinToString("/"), file)
+                }
+                return FileVisitResult.CONTINUE
+            }
+
+            // A folder that can't be read is skipped rather than failing the whole menu.
+            override fun visitFileFailed(file: Path, exc: IOException) = FileVisitResult.CONTINUE
+        })
+    }
+    return ChangeArtifacts(file("proposal.md"), file("design.md"), file("tasks.md"), specs.sortedBy { it.capability })
+}

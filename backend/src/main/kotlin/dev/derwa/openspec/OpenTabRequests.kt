@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.map
  * request sent while that client isn't subscribed is dropped.
  */
 @Service(Service.Level.PROJECT)
-class OpenTabRequests {
+internal class OpenTabRequests {
     private class Addressed(val clientId: ClientId, val request: OpenTabRequest)
 
     private val requests = MutableSharedFlow<Addressed>(extraBufferCapacity = 16)

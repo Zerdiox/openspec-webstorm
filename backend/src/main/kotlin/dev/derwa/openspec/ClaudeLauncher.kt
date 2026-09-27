@@ -7,7 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 
 /** Starts Claude Code with an OpenSpec command in a new terminal tab of the project. */
-object ClaudeLauncher {
+internal object ClaudeLauncher {
     fun launch(project: Project, action: Action, target: String?, command: String) {
         // The client that clicked is only current here, on the EDT, before the PATH check moves off it.
         val clientId = ClientId.current

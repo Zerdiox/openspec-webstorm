@@ -11,7 +11,7 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 
 /** Asks for the short description that Explore and Propose start from. */
-class DescriptionDialog(project: Project, action: Action) : DialogWrapper(project) {
+internal class DescriptionDialog(project: Project, action: Action) : DialogWrapper(project) {
     private val text = JBTextArea(6, 50).apply {
         lineWrap = true
         wrapStyleWord = true

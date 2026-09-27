@@ -5,7 +5,7 @@ import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.listDirectoryEntries
 
-enum class Action(val label: String) {
+internal enum class Action(val label: String) {
     EXPLORE("explore"),
     PROPOSE("propose"),
     APPLY("apply"),
@@ -16,9 +16,9 @@ enum class Action(val label: String) {
 }
 
 /** How OpenSpec's workflow commands are installed for Claude Code in a project. */
-enum class Delivery { SKILLS, OPSX }
+internal enum class Delivery { SKILLS, OPSX }
 
-data class ProjectSetup(val delivery: Delivery?, val hasBacklog: Boolean) {
+internal data class ProjectSetup(val delivery: Delivery?, val hasBacklog: Boolean) {
     companion object {
         fun detect(projectRoot: Path): ProjectSetup {
             val claude = projectRoot.resolve(".claude")
@@ -36,7 +36,7 @@ data class ProjectSetup(val delivery: Delivery?, val hasBacklog: Boolean) {
 }
 
 /** The slash command each action sends, following the project's own setup. */
-class CommandResolver(private val setup: ProjectSetup) {
+internal class CommandResolver(private val setup: ProjectSetup) {
     fun command(action: Action, argument: String?): String? {
         val base = when (action) {
             Action.BACKLOG_REVIEW -> if (setup.hasBacklog) "/backlog review" else null

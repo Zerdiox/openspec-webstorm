@@ -105,4 +105,19 @@ class FollowUpViewTest {
         assertEquals(listOf("bug", "tech-debt", "test-gap", "idea"), choices.types)
         assertEquals(listOf("panel"), choices.capabilities)
     }
+
+    @Test
+    fun `listed follows the tree's order when grouped`() {
+        val section = followUpSection(rows, FollowUpView(grouping = Grouping.TYPE))
+
+        assertEquals(listOf("FU-0002", "FU-0003", "FU-0001", "FU-0004", "FU-0005"), ids(section.listed))
+        assertEquals(ids(section.rows), ids(followUpSection(rows, FollowUpView()).listed))
+    }
+
+    @Test
+    fun `checks are kept for open follow-ups, shown or hidden, and dropped for resolved ones`() {
+        val checked = setOf(rows[0].key, rows[1].key, "followup:F99-resolved.md")
+
+        assertEquals(setOf(rows[0].key, rows[1].key), keptChecks(checked, rows))
+    }
 }

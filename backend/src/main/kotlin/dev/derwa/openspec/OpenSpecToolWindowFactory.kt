@@ -11,7 +11,7 @@ import com.intellij.ui.content.ContentFactory
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 
-class OpenSpecToolWindowFactory : ToolWindowFactory, DumbAware {
+internal class OpenSpecToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun shouldBeAvailable(project: Project): Boolean =
         project.basePath?.let { Path.of(it, "openspec").isDirectory() } ?: false
 

@@ -11,9 +11,9 @@ import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 import kotlin.io.path.readText
 
-const val FOLLOW_UPS_FOLDER = "openspec/backlog/followup"
+internal const val FOLLOW_UPS_FOLDER = "openspec/backlog/followup"
 
-data class FollowUp(
+internal data class FollowUp(
     val file: String,
     val id: String? = null,
     val title: String? = null,
@@ -23,7 +23,7 @@ data class FollowUp(
 )
 
 /** Reads a project's open follow-ups from the frontmatter of its backlog files. */
-object FollowUpsSource {
+internal object FollowUpsSource {
     // Projects number follow-ups their own way (FU-0042, F42, ...): a leading word and number.
     private val FILE_ID = Regex("^[A-Za-z]+-?\\d+")
     private val NUMBER = Regex("\\d+")

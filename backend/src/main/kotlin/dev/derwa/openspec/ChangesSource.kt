@@ -6,15 +6,15 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
-data class Change(val name: String, val completedTasks: Int, val totalTasks: Int, val status: String)
+internal data class Change(val name: String, val completedTasks: Int, val totalTasks: Int, val status: String)
 
-sealed interface ChangesResult {
+internal sealed interface ChangesResult {
     data class Loaded(val changes: List<Change>) : ChangesResult
     data class Unreadable(val reason: String) : ChangesResult
 }
 
 /** Maps `openspec list --json` output to changes; throws when it isn't that output. */
-fun parseChanges(json: String): List<Change> =
+internal fun parseChanges(json: String): List<Change> =
     JsonParser.parseString(json).asJsonObject.getAsJsonArray("changes").map {
         val change = it.asJsonObject
         Change(
@@ -26,7 +26,7 @@ fun parseChanges(json: String): List<Change> =
     }
 
 /** Reads a project's changes by asking the `openspec` CLI, found on [environment]'s PATH. */
-class ChangesSource(private val environment: Map<String, String>) {
+internal class ChangesSource(private val environment: Map<String, String>) {
     fun load(projectRoot: Path): ChangesResult {
         val openspec = findOnPath("openspec", environment)
             ?: return ChangesResult.Unreadable("openspec wasn't found in your shell's PATH")

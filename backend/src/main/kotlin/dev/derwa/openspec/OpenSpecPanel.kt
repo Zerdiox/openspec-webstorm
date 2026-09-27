@@ -1,7 +1,6 @@
 package dev.derwa.openspec
 
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.ide.util.PsiNavigationSupport
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -10,8 +9,6 @@ import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -22,8 +19,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.pom.Navigatable
-import com.intellij.psi.PsiManager
-import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.CheckboxTreeBase.CheckboxTreeCellRendererBase
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleTextAttributes
@@ -36,9 +32,9 @@ import javax.swing.ToolTipManager
 import javax.swing.tree.DefaultMutableTreeNode
 
 /** The OpenSpec tool window: the project's changes and follow-ups as a tree, with actions on the selection. */
-class OpenSpecPanel(private val project: Project, private val root: Path) : Disposable {
+internal class OpenSpecPanel(private val project: Project, private val root: Path) : Disposable {
     private val settings = PropertiesComponent.getInstance(project)
-    private val keyedTree = KeyedTree(settings, COLLAPSED_SETTING, ::searchText)
+    private val keyedTree = KeyedTree(settings, COLLAPSED_SETTING, Renderer(), ::searchText)
 
     private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
     private val generation = AtomicInteger()
@@ -72,7 +68,6 @@ class OpenSpecPanel(private val project: Project, private val root: Path) : Disp
     }
 
     init {
-        keyedTree.tree.cellRenderer = Renderer()
         ToolTipManager.sharedInstance().registerComponent(keyedTree.tree)
         PopupHandler.installFollowingSelectionTreePopup(keyedTree.tree, contextMenuActions(), POPUP_PLACE)
 
@@ -97,11 +92,21 @@ class OpenSpecPanel(private val project: Project, private val root: Path) : Disp
     /** The selected changes and follow-ups, in the order they're listed. */
     fun selectedItems(): List<PanelItem> = keyedTree.selection.mapNotNull { it.value as? PanelItem }
 
-    /** The actions for the current selection; a selected group or message disables them. */
-    fun selectionActions(): SelectionActions {
+    /** The selected change when it is the only row selected. */
+    fun selectedChange(): ChangeRow? = keyedTree.selection.singleOrNull()?.value as? ChangeRow
+
+    /** The actions for the current selection and checks, chosen at [place]; a selected group or message disables them. */
+    fun selectionActions(place: Place = Place.TOOLBAR): SelectionActions {
         val selection = keyedTree.selection
         val items = selection.mapNotNull { it.value as? PanelItem }
-        return selectionActions(setup, items, includesOther = items.size < selection.size)
+        return selectionActions(setup, items, includesOther = items.size < selection.size, checkedFollowUps(), place)
+    }
+
+    /** The checked follow-ups shown, in the order they're listed; a follow-up hidden by the filter isn't counted. */
+    private fun checkedFollowUps(): List<FollowUpRow> {
+        val checked = keyedTree.checked
+        if (checked.isEmpty()) return emptyList()
+        return followUpSection(model?.followUps.orEmpty(), followUpView).listed.filter { it.key in checked }
     }
 
     /** The follow-ups as last loaded, for the filter's choices. */
@@ -169,6 +174,7 @@ class OpenSpecPanel(private val project: Project, private val root: Path) : Disp
 
     private fun render() {
         val model = model ?: return
+        keyedTree.retainChecked(keptChecks(keyedTree.checked, model.followUps.orEmpty()))
         keyedTree.setNodes(listOfNotNull(changesNode(model.changes), model.followUps?.let(::followUpsNode)))
     }
 
@@ -188,14 +194,20 @@ class OpenSpecPanel(private val project: Project, private val root: Path) : Disp
         val children = when {
             rows.isEmpty() -> listOf(KeyedNode("$FOLLOW_UPS_KEY:message", Message("No open follow-ups.")))
             section.rows.isEmpty() -> listOf(KeyedNode("$FOLLOW_UPS_KEY:message", Message("No follow-ups match the filter.")))
-            section.groups == null -> section.rows.map { KeyedNode(it.key, it) }
+            section.groups == null -> section.rows.map(::followUpNode)
             else -> section.groups.map { group ->
                 KeyedNode(group.key, Heading(group.label, group.rows.size), group = true,
-                    children = group.rows.map { KeyedNode(it.key, it) })
+                    children = group.rows.map(::followUpNode), checkable = group.rows.any(::canBeChecked))
             }
         }
-        return KeyedNode(FOLLOW_UPS_KEY, Heading("Follow-ups", section.count, section.filtered), group = true, children = children)
+        return KeyedNode(FOLLOW_UPS_KEY, Heading("Follow-ups", section.count, section.filtered), group = true,
+            children = children, checkable = section.rows.any(::canBeChecked))
     }
+
+    private fun followUpNode(row: FollowUpRow) = KeyedNode(row.key, row, checkable = canBeChecked(row))
+
+    /** Only a follow-up that can be promoted has a checkbox. */
+    private fun canBeChecked(row: FollowUpRow) = row.promote != null
 
     private fun searchText(node: KeyedNode): String = when (val value = node.value) {
         is ChangeRow -> value.name
@@ -217,47 +229,32 @@ class OpenSpecPanel(private val project: Project, private val root: Path) : Disp
 
     private data class Message(val text: String)
 
-    private class Renderer : ColoredTreeCellRenderer() {
-        override fun customizeCellRenderer(
-            tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean,
+    /** Draws each row's text, after the checkbox of a checkable row. */
+    private class Renderer : CheckboxTreeCellRendererBase(false, true) {
+        override fun customizeRenderer(
+            tree: JTree, value: Any, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean,
         ) {
             toolTipText = null
+            val text = textRenderer
             when (val item = ((value as? DefaultMutableTreeNode)?.userObject as? KeyedNode)?.value) {
                 is Heading -> {
-                    append(item.name)
-                    append("  ${item.count}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
-                    if (item.filtered) append("  filtered", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                    text.append(item.name)
+                    text.append("  ${item.count}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                    if (item.filtered) text.append("  filtered", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 }
-                is Message -> append(item.text, SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                is Message -> text.append(item.text, SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 is ChangeRow -> {
-                    append(item.name)
-                    append("  ${item.progress}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                    text.append(item.name)
+                    text.append("  ${item.progress}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 }
                 is FollowUpRow -> {
-                    append("${item.id}  ${item.title}")
+                    text.append("${item.id}  ${item.title}")
                     val attributes = if (item.unreadable) SimpleTextAttributes.ERROR_ATTRIBUTES else SimpleTextAttributes.GRAYED_ATTRIBUTES
-                    if (item.detail.isNotEmpty()) append("  ${item.detail}", attributes)
+                    if (item.detail.isNotEmpty()) text.append("  ${item.detail}", attributes)
                     toolTipText = listOf(item.title, item.detail).filter { it.isNotEmpty() }.joinToString(" · ")
                 }
             }
         }
-    }
-
-    /** Opens a file in the editor, or selects a folder in the project tree. */
-    private class PathNavigatable(private val project: Project, private val path: Path) : Navigatable {
-        override fun navigate(requestFocus: Boolean) {
-            // A proposal written outside the IDE may not be in the VFS yet.
-            val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path) ?: return
-            if (file.isDirectory) {
-                ReadAction.computeBlocking<_, RuntimeException> { PsiManager.getInstance(project).findDirectory(file) }
-                    ?.let { PsiNavigationSupport.getInstance().navigateToDirectory(it, requestFocus) }
-            } else {
-                OpenFileDescriptor(project, file).navigate(requestFocus)
-            }
-        }
-
-        override fun canNavigate() = true
-        override fun canNavigateToSource() = true
     }
 
     companion object {

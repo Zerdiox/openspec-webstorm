@@ -2,6 +2,7 @@ package dev.derwa.openspec
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -206,5 +207,84 @@ class PanelModelTest {
         val folder = temp.newFolder("scaffolded").toPath()
 
         assertEquals(folder, changeOpenTarget(folder))
+    }
+
+    private fun write(folder: Path, relative: String): Path =
+        folder.resolve(relative).also {
+            it.parent.toFile().mkdirs()
+            it.toFile().writeText("# ${it.fileName}")
+        }
+
+    @Test
+    fun `a change's artifacts are the files it has`() {
+        val folder = temp.newFolder("full").toPath()
+        val proposal = write(folder, "proposal.md")
+        val design = write(folder, "design.md")
+        val tasks = write(folder, "tasks.md")
+
+        val artifacts = changeArtifacts(folder)
+
+        assertEquals(proposal, artifacts.proposal)
+        assertEquals(design, artifacts.design)
+        assertEquals(tasks, artifacts.tasks)
+    }
+
+    @Test
+    fun `a scaffolded change has no artifacts`() {
+        val folder = temp.newFolder("scaffolded").toPath()
+
+        assertEquals(ChangeArtifacts(null, null, null, emptyList()), changeArtifacts(folder))
+    }
+
+    @Test
+    fun `an empty specs folder gives no specs`() {
+        val folder = temp.newFolder("empty-specs").toPath()
+        folder.resolve("specs").toFile().mkdirs()
+
+        assertEquals(emptyList<DeltaSpec>(), changeArtifacts(folder).specs)
+    }
+
+    @Test
+    fun `specs are listed by capability in name order`() {
+        val folder = temp.newFolder("two-specs").toPath()
+        val panel = write(folder, "specs/workflow-panel/spec.md")
+        val browser = write(folder, "specs/spec-browser/spec.md")
+
+        assertEquals(
+            listOf(DeltaSpec("spec-browser", browser), DeltaSpec("workflow-panel", panel)),
+            changeArtifacts(folder).specs,
+        )
+    }
+
+    @Test
+    fun `a nested spec is labelled with its domain`() {
+        val folder = temp.newFolder("nested").toPath()
+        val auth = write(folder, "specs/identity/user-auth/spec.md")
+
+        assertEquals(listOf(DeltaSpec("identity/user-auth", auth)), changeArtifacts(folder).specs)
+    }
+
+    @Test
+    fun `an unreadable specs folder gives the specs it could read`() {
+        val folder = temp.newFolder("unreadable").toPath()
+        val panel = write(folder, "specs/workflow-panel/spec.md")
+        val locked = folder.resolve("specs/locked").toFile().apply { mkdirs() }
+        assumeTrue(locked.setReadable(false) && !locked.canRead())
+        try {
+            assertEquals(listOf(DeltaSpec("workflow-panel", panel)), changeArtifacts(folder).specs)
+        } finally {
+            locked.setReadable(true)
+        }
+    }
+
+    @Test
+    fun `only spec files count as specs`() {
+        val folder = temp.newFolder("stray").toPath()
+        val panel = write(folder, "specs/workflow-panel/spec.md")
+        write(folder, "specs/workflow-panel/notes.md")
+        write(folder, "specs/README.md")
+        folder.resolve("specs/not-yet").toFile().mkdirs()
+
+        assertEquals(listOf(DeltaSpec("workflow-panel", panel)), changeArtifacts(folder).specs)
     }
 }
