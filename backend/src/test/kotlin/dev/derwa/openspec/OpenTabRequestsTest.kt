@@ -15,7 +15,7 @@ class OpenTabRequestsTest {
     private val me = ClientId("me")
     private val guest = ClientId("guest")
 
-    private fun request(name: String) = OpenTabRequest(name, "/home/me/project", "claude '/openspec-explore'")
+    private fun request(name: String) = OpenTabRequest(name, "/home/me/project", TypeIntoShell("claude '/openspec-explore'"))
 
     @Test
     fun `a client gets only the requests from its own clicks`() = runBlocking {

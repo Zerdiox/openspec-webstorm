@@ -110,12 +110,20 @@ symbols or line breaks it contains.
 - **WHEN** the user proposes "Don't show $cost when it's 0"
 - **THEN** Claude Code receives exactly that text
 
+#### Scenario: A description on Windows
+- **WHEN** the user proposes a description with quotes, symbols and line breaks in an IDE on Windows, whichever shell its terminal runs
+- **THEN** Claude Code receives exactly that text
+
 ### Requirement: A missing tool is reported, not hidden
 If Claude Code can't be found, an action SHALL say so rather than open a terminal tab that fails.
 
 #### Scenario: Claude Code not installed
 - **WHEN** the user chooses an action and Claude Code can't be found
 - **THEN** the IDE reports that Claude Code wasn't found, and no terminal tab is opened
+
+#### Scenario: Claude Code installed with npm on Windows
+- **WHEN** the user chooses an action on Windows and the only Claude Code found is npm's command-line launcher rather than a program
+- **THEN** the IDE reports that this Claude Code can't be started and to install it with its native installer, and no terminal tab is opened
 
 ### Requirement: The lists stay current
 The lists SHALL update when the project's OpenSpec files change and when the panel is shown, and the
@@ -131,6 +139,18 @@ The plugin SHALL work the same in every IntelliJ-based IDE, including WebStorm a
 #### Scenario: Installed in PhpStorm
 - **WHEN** the plugin is installed in PhpStorm
 - **THEN** it loads, and the panel behaves as it does in WebStorm
+
+### Requirement: Works on Windows
+The panel SHALL list changes and start Claude Code sessions on Windows as it does on macOS and
+Linux, with tools installed the usual Windows way, such as npm's global install.
+
+#### Scenario: openspec installed globally with npm on Windows
+- **WHEN** the panel is shown in a Windows IDE and `openspec` was installed with `npm install -g`
+- **THEN** the project's changes are listed
+
+#### Scenario: No login shell on Windows
+- **WHEN** the plugin starts on Windows
+- **THEN** it uses the IDE's environment without logging a failure to read a shell's environment
 
 ### Requirement: A change's likely next step is one click away
 Once a change is selected, one of its actions SHALL be a single click away as the toolbar's main
